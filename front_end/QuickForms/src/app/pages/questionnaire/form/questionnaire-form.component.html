@@ -1,0 +1,235 @@
+<div class="container fade-in">
+  <form [formGroup]="questionnaireForm" (ngSubmit)="onSubmit()">
+    <div class="form-header">
+      <h1 class="page-title">{{ template ? '基於模板創建問卷' : '創建新問卷' }}</h1>
+      <div class="actions">
+        <button mat-button type="button" (click)="cancel()">取消</button>
+        <button mat-stroked-button type="button" (click)="previewQuestionnaire()" color="primary">
+          <mat-icon>preview</mat-icon>
+          預覽
+        </button>
+        <button mat-stroked-button type="button" (click)="saveDraft()" [disabled]="isSaving">
+          <mat-icon>save</mat-icon>
+          {{ isEditMode ? '更新' : '保存' }}
+        </button>
+        <button mat-stroked-button type="button" (click)="share()" [disabled]="!questionnaireId">
+          <mat-icon>share</mat-icon>
+          分享
+        </button>
+        <button mat-raised-button type="button" color="primary" (click)="publish()" [disabled]="isPublishing || !questionnaireId">
+          <mat-icon>publish</mat-icon>
+          發布
+        </button>
+      </div>
+    </div>
+
+    <mat-card class="form-card">
+      <mat-form-field class="full-width">
+        <mat-label>問卷標題</mat-label>
+        <input matInput formControlName="title" placeholder="請輸入問卷標題" aria-label="問卷標題">
+      </mat-form-field>
+
+      <div formArrayName="sections">
+        @for (section of sections.controls; track $index) {
+          <div [formGroupName]="$index" class="section">
+            <div class="section-header">
+              <mat-form-field>
+                <mat-label>區塊標題</mat-label>
+                <input matInput formControlName="title" placeholder="請輸入區塊標題">
+              </mat-form-field>
+              <button mat-icon-button color="warn" type="button" (click)="removeSection($index)" 
+                      [attr.aria-label]="'刪除區塊 ' + section.get('title')?.value">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            
+            <div formArrayName="questions" cdkDropList (cdkDropListDropped)="dropQuestion($index, $event)">
+              @for (question of getQuestions($index); track $index; let questionIndex = $index) {
+                <div [formGroupName]="questionIndex" class="question" cdkDrag>
+                  <div class="question-header">
+                    <mat-form-field class="question-label-field">
+                      <mat-label>問題標題</mat-label>
+                      <input matInput formControlName="label" placeholder="請輸入問題標題">
+                    </mat-form-field>
+
+                    <mat-form-field class="question-type-field">
+                      <mat-label>問題類型</mat-label>
+                      <mat-select [formControlName]="'type'" 
+                                (selectionChange)="updateQuestionType($index, questionIndex, $event.value)">
+                        <mat-option value="short-text">短文本</mat-option>
+                        <mat-option value="long-text">長文本</mat-option>
+                        <mat-option value="email">電子郵件</mat-option>
+                        <mat-option value="phone">電話號碼</mat-option>
+                        <mat-option value="rating">評分</mat-option>
+                        <mat-option value="radio">單選題</mat-option>
+                        <mat-option value="checkbox">多選題</mat-option>
+                        <mat-option value="select">選擇題</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+
+                    <mat-checkbox [formControlName]="'required'">必填</mat-checkbox>
+
+                    <button mat-icon-button color="warn" type="button" 
+                            (click)="removeQuestion($index, questionIndex)"
+                            [attr.aria-label]="'刪除問題 ' + question.get('label')?.value"
+                            matTooltip="刪除問題">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+
+                    <div class="drag-handle" cdkDragHandle matTooltip="拖動調整順序">
+                      <mat-icon>drag_indicator</mat-icon>
+                    </div>
+                  </div>
+
+                  @switch (question.get('type')?.value) {
+                    @case ('short-text') {
+                      <mat-form-field class="full-width">
+                        <input matInput formControlName="value" 
+                               [id]="'question-input-' + questionIndex"
+                               [attr.aria-labelledby]="'question-label-' + questionIndex"
+                               [placeholder]="question.get('options')?.value?.placeholder || '請輸入'">
+                      </mat-form-field>
+                    }
+                    @case ('long-text') {
+                      <mat-form-field class="full-width">
+                        <textarea matInput formControlName="value" rows="4"
+                                [id]="'question-input-' + questionIndex"
+                                [attr.aria-labelledby]="'question-label-' + questionIndex"
+                                [placeholder]="question.get('options')?.value?.placeholder || '請輸入'"></textarea>
+                      </mat-form-field>
+                    }
+                    @case ('email') {
+                      <mat-form-field class="full-width">
+                        <input matInput type="email" formControlName="value" 
+                               [id]="'question-input-' + questionIndex"
+                               [attr.aria-labelledby]="'question-label-' + questionIndex"
+                               placeholder="example@email.com">
+                      </mat-form-field>
+                    }
+                    @case ('phone') {
+                      <mat-form-field class="full-width">
+                        <input matInput type="tel" formControlName="value" 
+                               [id]="'question-input-' + questionIndex"
+                               [attr.aria-labelledby]="'question-label-' + questionIndex"
+                               placeholder="請輸入電話號碼">
+                      </mat-form-field>
+                    }
+                    @case ('rating') {
+                      <div class="rating-field">
+                        <div class="star-rating" 
+                             [attr.aria-label]="'評分: ' + (question.get('value')?.value || 0) + ' / ' + (question.get('options')?.value?.max || 5)">
+                          @for (star of [1,2,3,4,5]; track star) {
+                            <button mat-icon-button
+                                    type="button"
+                                    [color]="(question.get('value')?.value || 0) >= star ? 'accent' : ''"
+                                    (click)="setRating(question, star)"
+                                    [attr.aria-label]="star + '顆星'"
+                                    matTooltip="{{star}}顆星">
+                              <mat-icon>{{(question.get('value')?.value || 0) >= star ? 'star' : 'star_border'}}</mat-icon>
+                            </button>
+                          }
+                        </div>
+                        <div class="rating-value" aria-hidden="true">
+                          {{question.get('value')?.value || 0}} / {{question.get('options')?.value?.max || 5}}
+                        </div>
+                      </div>
+                    }
+                    @case ('radio') {
+                      <div class="options-field">
+                        <mat-radio-group formControlName="value" class="options-list"
+                                       [id]="'question-input-' + questionIndex"
+                                       [attr.aria-labelledby]="'question-label-' + questionIndex"
+                                       cdkDropList
+                                       (cdkDropListDropped)="dropOption(question, $event)">
+                          @for (choice of question.get('options')?.value?.choices; track $index) {
+                            <div class="option-item" cdkDrag>
+                              <mat-radio-button [value]="choice">
+                                <mat-form-field class="option-input">
+                                  <input matInput [value]="choice" 
+                                         (blur)="handleOptionInput(question, $index, $event)"
+                                         placeholder="請輸入選項內容">
+                                </mat-form-field>
+                              </mat-radio-button>
+                              <button mat-icon-button color="warn" type="button" 
+                                      (click)="removeOption(question, $index)"
+                                      [attr.aria-label]="'刪除選項 ' + choice"
+                                      matTooltip="刪除選項">
+                                <mat-icon>remove_circle</mat-icon>
+                              </button>
+                              <div class="drag-handle" cdkDragHandle matTooltip="拖動調整順序">
+                                <mat-icon>drag_indicator</mat-icon>
+                              </div>
+                            </div>
+                          }
+                          <button mat-stroked-button type="button" 
+                                  (click)="addOption(question)" 
+                                  class="add-option-btn"
+                                  matTooltip="添加新選項">
+                            <mat-icon>add</mat-icon>
+                            添加選項
+                          </button>
+                        </mat-radio-group>
+                      </div>
+                    }
+                    @case ('checkbox') {
+                      <div class="options-field">
+                        <div class="options-list"
+                             cdkDropList
+                             (cdkDropListDropped)="dropOption(question, $event)">
+                          @for (choice of question.get('options')?.value?.choices; track $index) {
+                            <div class="option-item" cdkDrag>
+                              <mat-checkbox [checked]="isOptionSelected(question, choice)"
+                                          (change)="toggleOption(question, choice, $event.checked)"
+                                          [id]="'question-input-' + questionIndex + '-' + $index"
+                                          [attr.aria-labelledby]="'question-label-' + questionIndex">
+                                <mat-form-field class="option-input">
+                                  <input matInput [value]="choice" 
+                                         (blur)="handleOptionInput(question, $index, $event)"
+                                         placeholder="請輸入選項內容">
+                                </mat-form-field>
+                              </mat-checkbox>
+                              <button mat-icon-button color="warn" type="button" 
+                                      (click)="removeOption(question, $index)"
+                                      [attr.aria-label]="'刪除選項 ' + choice"
+                                      matTooltip="刪除選項">
+                                <mat-icon>remove_circle</mat-icon>
+                              </button>
+                              <div class="drag-handle" cdkDragHandle matTooltip="拖動調整順序">
+                                <mat-icon>drag_indicator</mat-icon>
+                              </div>
+                            </div>
+                          }
+                          <button mat-stroked-button type="button" 
+                                  (click)="addOption(question)" 
+                                  class="add-option-btn"
+                                  matTooltip="添加新選項">
+                            <mat-icon>add</mat-icon>
+                            添加選項
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              }
+
+              <button mat-stroked-button type="button" (click)="addQuestion($index)" class="add-question-btn">
+                <mat-icon>add</mat-icon>
+                添加問題
+              </button>
+            </div>
+
+            @if (!$last) {
+              <mat-divider class="section-divider"></mat-divider>
+            }
+          </div>
+        }
+
+        <button mat-stroked-button type="button" (click)="addSection()" class="add-section-btn">
+          <mat-icon>add</mat-icon>
+          添加區塊
+        </button>
+      </div>
+    </mat-card>
+  </form>
+</div>
