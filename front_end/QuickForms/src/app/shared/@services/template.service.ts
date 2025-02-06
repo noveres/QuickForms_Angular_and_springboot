@@ -18,7 +18,7 @@ export interface SectionTemplate {
 }
 
 export interface Template {
-  id: string;
+  id: number;
   title: string;
   description: string;
   sections: SectionTemplate[];
@@ -30,7 +30,7 @@ export interface Template {
 export class TemplateService {
   private templates: Template[] = [
     {
-      id: '1',
+      id: 1,
       title: '客戶滿意度調查',
       description: '收集客戶反饋和建議',
       sections: [
@@ -76,7 +76,7 @@ export class TemplateService {
       ]
     },
     {
-      id: '2',
+      id: 2,
       title: '活動報名表',
       description: '活動和會議報名',
       sections: [
@@ -92,7 +92,7 @@ export class TemplateService {
       ]
     },
     {
-      id: '3',
+      id: 3,
       title: '員工考核表',
       description: '定期績效評估',
       sections: [
@@ -140,7 +140,7 @@ export class TemplateService {
     return of(this.templates);
   }
 
-  getTemplateById(id: string): Observable<Template | undefined> {
+  getTemplateById(id: number): Observable<Template | undefined> {
     return of(this.templates.find(t => t.id === id));
   }
 }

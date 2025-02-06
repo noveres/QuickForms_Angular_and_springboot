@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule, AbstractControl } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormArray, ReactiveFormsModule, AbstractControl, FormControl } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -88,7 +88,8 @@ export class QuestionnaireFormComponent implements OnInit {
   }
 
   private loadTemplate(templateId: string) {
-    this.templateService.getTemplateById(templateId).subscribe(template => {
+    const numericId = parseInt(templateId, 10);
+    this.templateService.getTemplateById(numericId).subscribe(template => {
       if (template) {
         this.template = template;
         this.initializeFormWithTemplate(template);
@@ -125,7 +126,10 @@ export class QuestionnaireFormComponent implements OnInit {
           label: [question.label, Validators.required],
           type: [question.type],
           required: [question.required],
-          options: [question.options || {}],
+          options: this.fb.group({
+            max: [5],
+            choices: [[]]
+          }),
           value: ['']
         });
 
@@ -166,8 +170,29 @@ export class QuestionnaireFormComponent implements OnInit {
     return this.questionnaireForm.get('sections') as FormArray;
   }
 
-  getQuestions(sectionIndex: number) {
-    return (this.sections.at(sectionIndex).get('questions') as FormArray).controls;
+  getControl(control: AbstractControl, path: string): FormControl {
+    const foundControl = control.get(path);
+    if (!foundControl) {
+      throw new Error(`Control ${path} not found`);
+    }
+    return foundControl as FormControl;
+  }
+
+  getNestedControl(control: AbstractControl, path: string): AbstractControl {
+    const foundControl = control.get(path);
+    if (!foundControl) {
+      throw new Error(`Control ${path} not found`);
+    }
+    return foundControl;
+  }
+
+  getQuestions(sectionIndex: number): AbstractControl[] {
+    const section = this.sections.at(sectionIndex);
+    if (!section) {
+      return [];
+    }
+    const questionsArray = section.get('questions') as FormArray;
+    return questionsArray.controls;
   }
 
   addSection() {
@@ -186,10 +211,13 @@ export class QuestionnaireFormComponent implements OnInit {
   addQuestion(sectionIndex: number) {
     const questionsArray = this.sections.at(sectionIndex).get('questions') as FormArray;
     const question = this.fb.group({
-      label: ['新問題', Validators.required],
+      label: ['', Validators.required],
       type: ['short-text'],
       required: [false],
-      options: [{}],
+      options: this.fb.group({
+        max: [5],
+        choices: [[]]
+      }),
       value: ['']
     });
     questionsArray.push(question);
@@ -203,7 +231,7 @@ export class QuestionnaireFormComponent implements OnInit {
   updateQuestionType(sectionIndex: number, questionIndex: number, type: string) {
     const question = (this.sections.at(sectionIndex).get('questions') as FormArray).at(questionIndex);
     question.patchValue({ type });
-    
+
     // 根據類型設置默認選項
     let options = {};
     switch (type) {
@@ -213,7 +241,7 @@ export class QuestionnaireFormComponent implements OnInit {
       case 'radio':
       case 'checkbox':
       case 'select':
-        options = { 
+        options = {
           choices: ['選項1', '選項2', '選項3'],
           allowOther: false // 是否允許其他選項
         };
@@ -221,7 +249,7 @@ export class QuestionnaireFormComponent implements OnInit {
       default:
         options = {};
     }
-    
+
     // 重置值
     if (type === 'checkbox') {
       question.patchValue({ value: [], options });
@@ -259,30 +287,27 @@ export class QuestionnaireFormComponent implements OnInit {
   }
 
   addOption(question: AbstractControl) {
-    const options = question.get('options')?.value || {};
-    const choices = [...(options.choices || [])];
-    const newOption = `選項${choices.length + 1}`;
-    choices.push(newOption);
-    question.patchValue({ options: { ...options, choices } });
+    const choices = [...(this.getNestedControl(question, 'options.choices').value || [])];
+    choices.push(`選項${choices.length + 1}`);
+    this.getNestedControl(question, 'options.choices').setValue(choices);
   }
 
-  removeOption(question: AbstractControl, optionIndex: number) {
-    const options = question.get('options')?.value || {};
-    const choices = [...(options.choices || [])];
-    choices.splice(optionIndex, 1);
-    question.patchValue({ options: { ...options, choices } });
+  removeOption(question: AbstractControl, index: number) {
+    const choices = [...(this.getNestedControl(question, 'options.choices').value || [])];
+    choices.splice(index, 1);
+    this.getNestedControl(question, 'options.choices').setValue(choices);
   }
 
-  updateOption(question: AbstractControl, optionIndex: number, newValue: string) {
-    const options = question.get('options')?.value || {};
-    const choices = [...(options.choices || [])];
-    choices[optionIndex] = newValue;
-    question.patchValue({ options: { ...options, choices } });
+  updateOption(question: AbstractControl, index: number, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const choices = [...(this.getNestedControl(question, 'options.choices').value || [])];
+    choices[index] = input.value;
+    this.getNestedControl(question, 'options.choices').setValue(choices);
   }
 
   handleOptionInput(question: AbstractControl, optionIndex: number, event: Event) {
     const input = event.target as HTMLInputElement;
-    this.updateOption(question, optionIndex, input.value);
+    this.updateOption(question, optionIndex, event);
   }
 
   drop(event: CdkDragDrop<any[]>) {
@@ -297,10 +322,9 @@ export class QuestionnaireFormComponent implements OnInit {
   }
 
   dropOption(question: AbstractControl, event: CdkDragDrop<string[]>) {
-    const options = question.get('options')?.value || {};
-    const choices = [...(options.choices || [])];
+    const choices = [...(this.getNestedControl(question, 'options.choices').value || [])];
     moveItemInArray(choices, event.previousIndex, event.currentIndex);
-    question.patchValue({ options: { ...options, choices } });
+    this.getNestedControl(question, 'options.choices').setValue(choices);
   }
 
   setRating(question: AbstractControl, rating: number) {

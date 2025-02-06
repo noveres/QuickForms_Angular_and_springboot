@@ -11,9 +11,9 @@ export class QuestionnaireService {
   // mockQuestionnaires: any;
   constructor(private http: HttpClient) {}
   private mockQuestionnaires = [
-    { id: '1', title: '问卷 1' },
-    { id: '2', title: '问卷 2' },
-    { id: '3', title: '问卷 3' },
+    { id: 1, title: '問卷 1' },
+    { id: 2, title: '問卷 2' },
+    { id: 3, title: '問卷 3' },
   ];
 
   getQuestionnaires(): Observable<any[]> {

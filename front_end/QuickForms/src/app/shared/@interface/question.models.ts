@@ -1,6 +1,6 @@
 // shared/models/questionnaire.model.ts
 export interface Questionnaire {
-    id: string;          // 問卷唯一ID
+    id: number;          // 問卷唯一ID
     title: string;       // 問卷標題
     description?: string;// 問卷描述（可選）
     questions: Question[]; // 問題列表（需定義Question類型）
