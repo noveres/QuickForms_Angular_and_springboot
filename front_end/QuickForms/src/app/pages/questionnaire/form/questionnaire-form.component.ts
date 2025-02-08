@@ -344,7 +344,7 @@ export class QuestionnaireFormComponent implements OnInit {
   // 保存為草稿
   saveDraft() {
     if (this.questionnaireForm.invalid) {
-      this.snackBar.open('請填寫必要欄位', '關閉', { duration: 3000 });
+      this.snackBar.open('請填寫必要欄位', '關閉', { });
       return;
     }
 
