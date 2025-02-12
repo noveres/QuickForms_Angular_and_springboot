@@ -1,0 +1,111 @@
+<div class="container fade-in">
+  <div class="questionnaire-list">
+    <div class="list-header">
+      <h1>問卷列表</h1>
+      <button mat-raised-button color="primary" [routerLink]="['/questionnaires/new']">
+        <mat-icon>add</mat-icon>
+        新建問卷
+      </button>
+    </div>
+
+    <div class="table-container mat-elevation-z2">
+      <table mat-table [dataSource]="questionnaires" class="mat-elevation-z0">
+        <!-- 編號欄位 -->
+        <ng-container matColumnDef="index">
+          <th mat-header-cell *matHeaderCellDef> 編號 </th>
+          <td mat-cell *matCellDef="let i = index"> {{i + 1}} </td>
+        </ng-container>
+
+        <!-- 標題欄位 -->
+        <ng-container matColumnDef="title">
+          <th mat-header-cell *matHeaderCellDef>標題</th>
+          <td mat-cell *matCellDef="let questionnaire">
+            <div class="title-container">
+              <span class="title">{{ questionnaire.title }}</span>
+      
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- 狀態欄位 -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>狀態</th>
+          <td mat-cell *matCellDef="let questionnaire">
+            <mat-chip [color]="getStatusColor(questionnaire.status)" selected>
+              {{ getStatusText(questionnaire.status) }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- 回答數量欄位 -->
+        <ng-container matColumnDef="responseCount">
+          <th mat-header-cell *matHeaderCellDef>回答數</th>
+          <td mat-cell *matCellDef="let questionnaire">
+            {{ questionnaire.responseCount }}
+          </td>
+        </ng-container>
+
+        <!-- 創建時間欄位 -->
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>創建時間</th>
+          <td mat-cell *matCellDef="let questionnaire">
+            {{ formatDate(questionnaire.createdAt) }}
+          </td>
+        </ng-container>
+
+        <!-- 操作欄位 -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>操作</th>
+          <td mat-cell *matCellDef="let questionnaire">
+            <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="操作選單">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <a mat-menu-item [routerLink]="['/questionnaires/edit', questionnaire.id]">
+                <mat-icon>edit</mat-icon>
+                <span>編輯</span>
+              </a>
+              <button mat-menu-item (click)="copyQuestionnaire(questionnaire.id)">
+                <mat-icon>content_copy</mat-icon>
+                <span>複製</span>
+              </button>
+              <a mat-menu-item [routerLink]="['/questionnaires/stats', questionnaire.id]">
+                <mat-icon>bar_chart</mat-icon>
+                <span>統計</span>
+              </a>
+              <button mat-menu-item *ngIf="questionnaire.status === 'DRAFT'"
+                      (click)="publishQuestionnaire(questionnaire.id)">
+                <mat-icon>publish</mat-icon>
+                <span>發布</span>
+              </button>
+              <button mat-menu-item *ngIf="questionnaire.status === 'PUBLISHED'"
+                      (click)="unpublishQuestionnaire(questionnaire.id)">
+                <mat-icon>unpublished</mat-icon>
+                <span>取消發布</span>
+              </button>
+              <button mat-menu-item (click)="deleteQuestionnaire(questionnaire.id)">
+                <mat-icon>delete</mat-icon>
+                <span>刪除</span>
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+            (click)="onRowClick(row, $event)"
+            class="clickable-row"></tr> 
+            // 點擊行時導航到編輯頁面
+      </table>
+
+      <div *ngIf="isLoading" class="loading-overlay">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <div *ngIf="!isLoading && questionnaires.length === 0" class="no-data">
+        <mat-icon>inbox</mat-icon>
+        <p>暫無問卷</p>
+      </div>
+    </div>
+  </div>
+</div>
