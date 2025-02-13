@@ -1,0 +1,44 @@
+<div class="statistics-container" *ngIf="statistics">
+  <div class="statistics-header">
+    <h2>問卷統計</h2>
+    <div class="total-responses">
+        總填寫次數：{{ statistics.totalResponses }}
+    </div>
+  </div>
+
+  <div class="statistics-content">
+    <div class="question-statistics" *ngFor="let question of statistics.questionStatistics">
+      <div class="question-header">
+        <h3>{{ question.questionText }}</h3>
+        <p>總回答數：{{ question.totalAnswers }}</p>
+  </div>
+
+        <div class="chart-container">
+          <canvas [id]="'chart-' + question.questionId"></canvas>
+        </div>
+
+      <div class="distribution-table">
+        <table>
+          <thead>
+            <tr>
+              <th>選項</th>
+              <th>次數</th>
+              <th>百分比</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let option of question.optionDistribution | keyvalue">
+              <td>{{ option.key }}</td>
+              <td>{{ option.value }}</td>
+              <td>{{ (option.value / question.totalAnswers * 100).toFixed(1) }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="no-data" *ngIf="!statistics">
+  載入中...
+</div>

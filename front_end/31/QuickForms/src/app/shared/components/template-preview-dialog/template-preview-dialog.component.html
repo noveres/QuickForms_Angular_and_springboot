@@ -1,0 +1,70 @@
+<div class="dialog-container">
+  <div mat-dialog-title class="dialog-header">
+    <div class="title-section">
+      <h2>{{data.template.title}}</h2>
+      <p class="description">{{data.template.description}}</p>
+    </div>
+    <button mat-icon-button (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <mat-dialog-content class="dialog-content">
+    <div class="preview-container">
+      @for (section of questions; track $index) {
+        <div class="question-section">
+          <h3>{{section.title}}</h3>
+          
+          @for (question of section.questions; track $index) {
+            <div class="question-item">
+              <div class="question-header">
+                <span class="question-label">{{question.label}}</span>
+                @if (question.required) {
+                  <span class="required-mark">*</span>
+                }
+              </div>
+
+              @switch (question.type) {
+                @case ('short-text') {
+                  <input type="text" class="preview-input" disabled placeholder="短文本回答">
+                }
+                @case ('long-text') {
+                  <textarea class="preview-input" disabled placeholder="長文本回答"></textarea>
+                }
+                @case ('email') {
+                  <input type="email" class="preview-input" disabled placeholder="example@email.com">
+                }
+                @case ('phone') {
+                  <input type="tel" class="preview-input" disabled placeholder="請輸入電話號碼">
+                }
+                @case ('rating') {
+                  <div class="rating-preview">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <mat-icon class="star-icon">star_border</mat-icon>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+        </div>
+
+        @if (!$last) {
+          <mat-divider class="section-divider"></mat-divider>
+        }
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-divider></mat-divider>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="close()">取消</button>
+    <button mat-raised-button color="primary" (click)="useTemplate()">
+      <mat-icon>content_copy</mat-icon>
+      使用此模板
+    </button>
+  </mat-dialog-actions>
+</div>

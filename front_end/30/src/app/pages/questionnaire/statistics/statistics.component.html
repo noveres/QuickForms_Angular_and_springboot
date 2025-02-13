@@ -1,0 +1,107 @@
+<div class="statistics-container">
+  <mat-card *ngIf="loading" class="loading-card">
+    <mat-card-content>
+      <mat-spinner></mat-spinner>
+      <p>載入統計數據中...</p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="error" class="error-card">
+    <mat-card-content>
+      <mat-icon>error</mat-icon>
+      <p>{{ error }}</p>
+    </mat-card-content>
+  </mat-card>
+
+  <ng-container *ngIf="!loading && !error && statistics">
+    <mat-card class="title-card">
+      <mat-card-header>
+        <mat-card-title>{{ statistics.questionnaire?.title || '未命名問卷' }}</mat-card-title>
+        <mat-card-subtitle>{{ statistics.questionnaire?.description }}</mat-card-subtitle>
+      </mat-card-header>
+    </mat-card>
+
+    <div class="overview-cards">
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-value">{{ statistics.overview.totalResponses }}</div>
+          <div class="stat-label">總回答數</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-value">{{ getCompletionRate() }}</div>
+          <div class="stat-label">完成率</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-content>
+          <div class="stat-value">{{ getAverageCompletionTime() }}</div>
+          <div class="stat-label">平均完成時間</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-accordion class="questions-stats">
+      <mat-expansion-panel *ngFor="let question of statistics.questions">
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{ question.label }}</mat-panel-title>
+          <mat-panel-description>{{ question.totalResponses }}個回答</mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <!-- 選擇題圖表 -->
+        <div *ngIf="question.type === 'choice'" class="chart-container">
+          <canvas baseChart
+            [type]="'pie'"
+            [data]="getChartData(question)"
+            [options]="chartOptions">
+          </canvas>
+        </div>
+
+        <!-- 評分題圖表 -->
+        <div *ngIf="question.type === 'rating'" class="chart-container">
+          <canvas baseChart
+            [type]="'bar'"
+            [data]="getChartData(question)"
+            [options]="chartOptions">
+          </canvas>
+          <p *ngIf="question.averageRating" class="average-rating">
+            平均評分: {{ question.averageRating.toFixed(1) }}
+          </p>
+        </div>
+
+        <!-- 文字題分析 -->
+        <div *ngIf="question.type === 'text'" class="text-analysis">
+          <div *ngIf="question.commonPhrases?.length" class="common-phrases">
+            <h3>常見回答</h3>
+            <mat-list>
+              <mat-list-item *ngFor="let phrase of question.commonPhrases">
+                {{ phrase.text }} ({{ phrase.count }}次)
+              </mat-list-item>
+            </mat-list>
+          </div>
+
+          <div *ngIf="question.wordCloud?.length" class="word-cloud">
+            <h3>詞雲</h3>
+            <div class="word-cloud-container">
+              <span *ngFor="let word of question.wordCloud"
+                    [style.font-size.px]="12 + word.weight * 2"
+                    [style.opacity]="0.5 + word.weight / 10">
+                {{ word.text }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+
+    <div class="actions">
+      <button mat-raised-button color="primary" (click)="exportToExcel()">
+        <mat-icon>download</mat-icon>
+        導出Excel
+      </button>
+    </div>
+  </ng-container>
+</div>

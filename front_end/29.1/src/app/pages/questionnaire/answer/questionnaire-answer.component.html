@@ -1,0 +1,95 @@
+<div class="answer-container">
+  <mat-card class="questionnaire-card" *ngIf="questionnaire">
+    <mat-card-header>
+      <mat-card-title>{{ questionnaire.title }}</mat-card-title>
+      <mat-card-subtitle *ngIf="questionnaire.description">
+        {{ questionnaire.description }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="answerForm" (ngSubmit)="onSubmit()">
+        <div formArrayName="sections">
+          <div *ngFor="let section of sections.controls; let sectionIndex = index">
+            <div [formGroupName]="sectionIndex" class="section">
+              <h3>{{ section.get('title')?.value }}</h3>
+              
+              <div formArrayName="questions">
+                <div *ngFor="let question of getQuestions(sectionIndex).controls; let questionIndex = index"
+                     [formGroupName]="questionIndex" 
+                     class="question-container">
+                  
+                  <div class="question-label">
+                    {{ question.get('label')?.value }}
+                    <span class="required-mark" *ngIf="question.get('required')?.value">*</span>
+                  </div>
+
+                  <!-- 文本輸入 -->
+                  <mat-form-field *ngIf="question.get('type')?.value === 'text'" class="full-width">
+                    <input matInput 
+                           [formControlName]="'answer'"
+                           [placeholder]="question.get('options')?.value?.placeholder || '請輸入'"
+                           [required]="question.get('required')?.value">
+                  </mat-form-field>
+
+                  <!-- 多行文本輸入 -->
+                  <mat-form-field *ngIf="question.get('type')?.value === 'textarea'" class="full-width">
+                    <textarea matInput 
+                            [formControlName]="'answer'"
+                            [placeholder]="question.get('options')?.value?.placeholder || '請輸入'"
+                            [required]="question.get('required')?.value"
+                            rows="4"></textarea>
+                  </mat-form-field>
+
+                  <!-- 單選題 -->
+                  <mat-radio-group *ngIf="question.get('type')?.value === 'radio'"
+                                 [formControlName]="'answer'"
+                                 class="radio-group">
+                    <mat-radio-button *ngFor="let choice of question.get('options')?.value?.choices | keyvalue"
+                                    [value]="choice.key"
+                                    class="radio-button">
+                      {{ choice.value }}
+                    </mat-radio-button>
+                  </mat-radio-group>
+
+                  <!-- 多選題 -->
+                  <div *ngIf="question.get('type')?.value === 'checkbox'" class="checkbox-group">
+                    <mat-checkbox *ngFor="let choice of question.get('options')?.value?.choices | keyvalue"
+                                [checked]="question.get('answer')?.value?.includes(choice.key)"
+                                (change)="$event.checked ? 
+                                         question.get('answer')?.value?.push(choice.key) : 
+                                         question.get('answer')?.value?.splice(question.get('answer')?.value?.indexOf(choice.key), 1)"
+                                class="checkbox-item">
+                      {{ choice.value }}
+                    </mat-checkbox>
+                  </div>
+
+                  <!-- 評分題 -->
+                  <div *ngIf="question.get('type')?.value === 'rating'" class="rating-group">
+                    <mat-radio-group [formControlName]="'answer'" class="rating-buttons">
+                      <mat-radio-button *ngFor="let rating of question.get('options')?.value?.choices | keyvalue"
+                                      [value]="rating.key"
+                                      class="rating-button">
+                        {{ rating.value }}
+                      </mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-container">
+          <button mat-raised-button 
+                  color="primary" 
+                  type="submit"
+                  [disabled]="answerForm.invalid || isSubmitting">
+            提交問卷
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

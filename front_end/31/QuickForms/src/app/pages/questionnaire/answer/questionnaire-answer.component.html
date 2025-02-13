@@ -1,0 +1,147 @@
+<div class="answer-container">
+  <mat-card class="questionnaire-card" *ngIf="questionnaire">
+    <mat-card-header>
+      <mat-card-title>{{ questionnaire.title }}</mat-card-title>
+      <mat-card-subtitle *ngIf="questionnaire.description">
+        {{ questionnaire.description }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="answerForm" (ngSubmit)="onSubmit()">
+        <div formArrayName="sections">
+          <div *ngFor="let section of getSectionControls(); let sectionIndex = index">
+            <div [formGroupName]="sectionIndex" class="section">
+              <h3>{{ section.get('title')?.value }}</h3>
+              
+              <div formArrayName="questions">
+                <div *ngFor="let question of getQuestionControls(sectionIndex); let questionIndex = index"
+                     [formGroupName]="questionIndex" 
+                     class="question-container">
+                  
+                  <div class="question-header">
+                    <span class="question-label">{{ question.get('label')?.value }}</span>
+                    <span class="required-mark" *ngIf="question.get('required')?.value">*</span>
+                  </div>
+
+                  <ng-container [ngSwitch]="question.get('type')?.value">
+                    <mat-form-field *ngSwitchCase="'short-text'" class="full-width">
+                      <input matInput formControlName="answer"
+                            [placeholder]="question.get('options')?.value?.placeholder || '請輸入'"
+                            [required]="question.get('required')?.value || false">
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        此欄位為必填
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field *ngSwitchCase="'long-text'" class="full-width">
+                      <textarea matInput formControlName="answer"
+                              [placeholder]="question.get('options')?.value?.placeholder || '請輸入'"
+                              [required]="question.get('required')?.value || false"
+                              rows="4"></textarea>
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        此欄位為必填
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field *ngSwitchCase="'email'" class="full-width">
+                      <input matInput type="email" formControlName="answer"
+                            [placeholder]="'請輸入電子郵件'"
+                            [required]="question.get('required')?.value || false">
+                      <mat-icon matPrefix>email</mat-icon>
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        此欄位為必填
+                      </mat-error>
+                      <mat-error *ngIf="question.get('answer')?.hasError('email') && !question.get('answer')?.hasError('required')">
+                        請輸入有效的電子郵件地址
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field *ngSwitchCase="'phone'" class="full-width">
+                      <input matInput type="tel" formControlName="answer"
+                            [placeholder]="'請輸入電話號碼'"
+                            [required]="question.get('required')?.value || false"
+                            pattern="[0-9]*">
+                      <mat-icon matPrefix>phone</mat-icon>
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        此欄位為必填
+                      </mat-error>
+                      <mat-error *ngIf="question.get('answer')?.hasError('pattern') && !question.get('answer')?.hasError('required')">
+                        請只輸入數字
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-radio-group *ngSwitchCase="'rating'" formControlName="answer" class="rating-group">
+                      <mat-radio-button *ngFor="let rating of question.get('options')?.value?.choices | keyvalue"
+                                      [value]="rating.key"
+                                      class="rating-button">
+                        {{ rating.value }}
+                      </mat-radio-button>
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        請選擇一個選項
+                      </mat-error>
+                    </mat-radio-group>
+
+                    <mat-radio-group *ngSwitchCase="'radio'" formControlName="answer" class="radio-group">
+                      <mat-radio-button *ngFor="let choice of question.get('options')?.value?.choices | keyvalue"
+                                      [value]="choice.key"
+                                      class="radio-button">
+                        {{ choice.value }}
+                      </mat-radio-button>
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        請選擇一個選項
+                      </mat-error>
+                    </mat-radio-group>
+
+                    <div *ngSwitchCase="'checkbox'" class="checkbox-group">
+                      <mat-checkbox *ngFor="let choice of question.get('options')?.value?.choices | keyvalue"
+                                  [checked]="question.get('answer')?.value?.includes(choice.key)"
+                                  (change)="$event.checked ? 
+                                           question.get('answer')?.value?.push(choice.key) : 
+                                           question.get('answer')?.value?.splice(question.get('answer')?.value?.indexOf(choice.key), 1)"
+                                  class="checkbox-item">
+                        {{ choice.value }}
+                      </mat-checkbox>
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        請至少選擇一個選項
+                      </mat-error>
+                    </div>
+
+                    <mat-form-field *ngSwitchCase="'select'" class="full-width">
+                      <mat-select formControlName="answer"
+                                [required]="question.get('required')?.value || false"
+                                [placeholder]="'請選擇'">
+                        <mat-option *ngFor="let option of question.get('options')?.value?.choices | keyvalue"
+                                  [value]="option.key">
+                          {{ option.value }}
+                        </mat-option>
+                      </mat-select>
+                      <mat-error *ngIf="question.get('answer')?.hasError('required') && question.get('answer')?.touched">
+                        請選擇一個選項
+                      </mat-error>
+                    </mat-form-field>
+                  </ng-container>
+
+                  <div class="validation-message" [class.error]="question.get('answer')?.invalid && question.get('answer')?.touched">
+                    <span *ngIf="question.get('answer')?.hasError('required')">此欄位為必填</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <mat-divider class="section-divider" *ngIf="sectionIndex !== getSectionControls().length - 1"></mat-divider>
+          </div>
+        </div>
+
+        <div class="button-container">
+          <button mat-raised-button 
+                  color="primary" 
+                  type="submit"
+                  [disabled]="answerForm.invalid || isSubmitting">
+            提交問卷
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

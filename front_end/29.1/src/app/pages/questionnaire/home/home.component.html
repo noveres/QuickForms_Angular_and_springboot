@@ -1,0 +1,45 @@
+<div class="container fade-in">
+  <div class="home-header">
+    <h1 class="page-title">問卷模板</h1>
+    <button mat-raised-button color="primary" (click)="createBlank()">
+      <mat-icon>add</mat-icon>
+      空白問卷
+    </button>
+  </div>
+
+  <div class="template-grid">
+    @for (template of templates; track template.id) {
+      <mat-card class="template-card">
+        <mat-card-header>
+          <mat-card-title>{{template.title}}</mat-card-title>
+          <mat-card-subtitle>適用於{{template.description}}</mat-card-subtitle>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div class="template-preview">
+            <mat-icon class="template-icon">description</mat-icon>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-button color="primary" (click)="previewTemplate(template)">
+            <mat-icon>visibility</mat-icon>
+            預覽
+          </button>
+          <button mat-button color="accent" (click)="copyTemplate(template)">
+            <mat-icon>content_copy</mat-icon>
+            使用此模板
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    }
+
+    @if (templates.length === 0) {
+      <div class="empty-state">
+        <mat-icon>category</mat-icon>
+        <p>暫無可用模板</p>
+      </div>
+    }
+  </div>
+</div>
+<app-questionnaire-list></app-questionnaire-list>
