@@ -1,0 +1,26 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.main-content {
+  padding-top: 64px; /* 與導航欄高度相同 */
+  min-height: calc(100vh - 64px);
+
+  &.no-nav {
+    padding-top: 0;
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 600px) {
+  .main-content {
+    padding-top: 56px; /* 手機版導航欄高度 */
+    min-height: calc(100vh - 56px);
+
+    &.no-nav {
+      padding-top: 0;
+      min-height: 100vh;
+    }
+  }
+}

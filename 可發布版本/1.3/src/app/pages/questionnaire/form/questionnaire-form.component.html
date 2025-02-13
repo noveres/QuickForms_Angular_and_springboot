@@ -1,0 +1,205 @@
+<div class="container fade-in">
+  <form [formGroup]="questionnaireForm" (ngSubmit)="onSubmit()">
+    <div class="form-header">
+      <h1 class="page-title">{{ template ? '基於模板創建問卷' : '創建新問卷' }}</h1>
+      <div class="actions">
+        <button mat-button type="button" routerLink="/home" (click)="cancel()">取消</button>
+        <button mat-stroked-button type="button" (click)="previewQuestionnaire()" color="primary">
+          <mat-icon>preview</mat-icon>
+          預覽
+        </button>
+        <button mat-stroked-button type="button" (click)="saveDraft()" [disabled]="isSaving">
+          <mat-icon>save</mat-icon>
+          {{ isEditMode ? '更新' : '保存' }}
+        </button>
+        <button mat-stroked-button type="button" (click)="share()">
+          <mat-icon>share</mat-icon>
+          分享
+        </button>
+        <button mat-raised-button type="button" color="primary" (click)="publish()" [disabled]="isPublishing || !questionnaireId">
+          <mat-icon>publish</mat-icon>
+          發布
+        </button>
+      </div>
+    </div>
+
+    <mat-card class="form-card">
+      <mat-form-field class="full-width">
+        <mat-label>問卷標題</mat-label>
+        <input matInput formControlName="title" placeholder="請輸入問卷標題" aria-label="問卷標題">
+      </mat-form-field>
+
+      <div formArrayName="sections">
+        @for (section of sections.controls; track $index) {
+          <div [formGroupName]="$index" class="section">
+            <div class="section-header">
+              <mat-form-field>
+                <mat-label>區塊標題</mat-label>
+                <input matInput formControlName="title" placeholder="請輸入區塊標題">
+              </mat-form-field>
+              <button mat-icon-button color="warn" type="button" (click)="removeSection($index)" 
+                      [attr.aria-label]="'刪除區塊 ' + section.get('title')?.value">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            
+            <div formArrayName="questions" cdkDropList (cdkDropListDropped)="dropQuestion($index, $event)">
+              @for (question of getQuestions($index); track $index; let questionIndex = $index) {
+                <div [formGroupName]="questionIndex" class="question" cdkDrag>
+                  <div class="question-header">
+                    <mat-form-field>
+                      <input matInput [formControl]="getControl(question, 'label')" placeholder="問題標題">
+                    </mat-form-field>
+                    <mat-form-field>
+                      <mat-select [formControl]="getControl(question, 'type')">
+                        <mat-option value="short-text">短文本</mat-option>
+                        <mat-option value="long-text">長文本</mat-option>
+                        <mat-option value="email">電子郵件</mat-option>
+                        <mat-option value="phone">電話</mat-option>
+                        <mat-option value="rating">評分</mat-option>
+                        <mat-option value="radio">單選</mat-option>
+                        <mat-option value="checkbox">多選</mat-option>
+                        <mat-option value="select">下拉選擇</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-checkbox [formControl]="getControl(question, 'required')">必填</mat-checkbox>
+                    <button mat-icon-button color="warn" type="button" (click)="removeQuestion($index, questionIndex)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="question-content" [ngSwitch]="getControl(question, 'type').value">
+                    <!-- 評分 -->
+                    <div *ngSwitchCase="'rating'" class="rating-container">
+                      <div class="answer-frame rating-frame" [class.required]="getControl(question, 'required').value">
+                        <div class="rating-display">
+                          <mat-icon *ngFor="let star of [1,2,3,4,5]"
+                                  [class.active]="star <= (getControl(question, 'value').value || 0)">
+                            star
+                          </mat-icon>
+                        </div>
+                        <div class="rating-options">
+                          <div *ngFor="let choice of getControl(getNestedControl(question, 'options'), 'choices').value | keyvalue" 
+                               class="rating-option">
+                            <!-- <span class="rating-text">{{ choice.value }}</span> -->
+                          </div>
+                        </div>
+                        <div class="required-hint" *ngIf="getControl(question, 'required').value">必填</div>
+                      </div>
+                    </div>
+
+                    <!-- 單選、多選、下拉選擇 -->
+                    <div *ngSwitchCase="'radio'" class="options-container">
+                      <div cdkDropList (cdkDropListDropped)="dropOption(question, $event)">
+                        <div *ngFor="let choice of getControl(getNestedControl(question, 'options'), 'choices').value | keyvalue; let i = index" cdkDrag class="option-item">
+                          <mat-form-field>
+                            <input matInput [value]="choice.value" (input)="handleOptionInput(question, i, $event)" placeholder="選項內容">
+                          </mat-form-field>
+                          <button mat-icon-button color="warn" type="button" (click)="removeOption(question, i)">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+                      <button mat-stroked-button type="button" (click)="addOption(question)" class="add-option-btn">
+                        <mat-icon>add</mat-icon>
+                        添加選項
+                      </button>
+                    </div>
+
+                    <div *ngSwitchCase="'checkbox'" class="options-container">
+                      <div cdkDropList (cdkDropListDropped)="dropOption(question, $event)">
+                        <div *ngFor="let choice of getControl(getNestedControl(question, 'options'), 'choices').value | keyvalue; let i = index" cdkDrag class="option-item">
+                          <mat-form-field>
+                            <input matInput [value]="choice.value" (input)="handleOptionInput(question, i, $event)" placeholder="選項內容">
+                          </mat-form-field>
+                          <button mat-icon-button color="warn" type="button" (click)="removeOption(question, i)">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+                      <button mat-stroked-button type="button" (click)="addOption(question)" class="add-option-btn">
+                        <mat-icon>add</mat-icon>
+                        添加選項
+                      </button>
+                    </div>
+
+                    <div *ngSwitchCase="'select'" class="options-container">
+                      <div cdkDropList (cdkDropListDropped)="dropOption(question, $event)">
+                        <div *ngFor="let choice of getControl(getNestedControl(question, 'options'), 'choices').value | keyvalue; let i = index" cdkDrag class="option-item">
+                          <mat-form-field>
+                            <input matInput [value]="choice.value" (input)="handleOptionInput(question, i, $event)" placeholder="選項內容">
+                          </mat-form-field>
+                          <button mat-icon-button color="warn" type="button" (click)="removeOption(question, i)">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+                      <button mat-stroked-button type="button" (click)="addOption(question)" class="add-option-btn">
+                        <mat-icon>add</mat-icon>
+                        添加選項
+                      </button>
+                    </div>
+
+                    <!-- 文本類型 -->
+                    <div *ngSwitchCase="'short-text'">
+                      <div class="answer-frame" [class.required]="getControl(question, 'required').value">
+                        <div class="text-input-display short">
+                          <div class="frame-hint">請輸入簡短回答</div>
+                          <div class="required-hint" *ngIf="getControl(question, 'required').value">必填</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div *ngSwitchCase="'long-text'">
+                      <div class="answer-frame" [class.required]="getControl(question, 'required').value">
+                        <div class="text-input-display long">
+                          <div class="frame-hint">可輸入較長的文字說明</div>
+                          <div class="required-hint" *ngIf="getControl(question, 'required').value">必填</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div *ngSwitchCase="'email'">
+                      <div class="answer-frame" [class.required]="getControl(question, 'required').value">
+                        <div class="text-input-display email">
+                          <mat-icon class="input-icon">email</mat-icon>
+                          <div class="frame-hint">請輸入有效的電子郵件</div>
+                          <div class="required-hint" *ngIf="getControl(question, 'required').value">必填</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div *ngSwitchCase="'phone'">
+                      <div class="answer-frame" [class.required]="getControl(question, 'required').value">
+                        <div class="text-input-display phone">
+                          <mat-icon class="input-icon">phone</mat-icon>
+                          <div class="frame-hint">請輸入聯繫電話</div>
+                          <div class="required-hint" *ngIf="getControl(question, 'required').value">必填</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <button mat-stroked-button type="button" (click)="addQuestion($index)" class="add-question-btn">
+                <mat-icon>add</mat-icon>
+                添加問題
+              </button>
+
+            </div>
+
+            @if (!$last) {
+              <mat-divider class="section-divider"></mat-divider>
+            }
+          </div>
+        }
+
+        <button mat-stroked-button type="button" (click)="addSection()" class="add-section-btn">
+          <mat-icon>add</mat-icon>
+          添加區塊
+        </button>
+      </div>
+    </mat-card>
+  </form>
+</div>

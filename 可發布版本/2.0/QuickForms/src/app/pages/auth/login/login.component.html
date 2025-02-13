@@ -1,0 +1,61 @@
+<div class="login-container">
+  <div class="login-box">
+    <div class="login-header">
+      <img src="assets/logo.svg" alt="Logo" class="logo">
+      <h1>問卷管理系統</h1>
+    </div>
+    
+    <form class="login-form" #loginForm="ngForm" (ngSubmit)="onSubmit(loginForm)">
+      <div class="form-group">
+        <label for="username">
+          <i class="fas fa-user"></i>
+        </label>
+        <input 
+          type="text" 
+          id="username" 
+          name="username" 
+          placeholder="用戶名"
+          [(ngModel)]="username"
+          required
+          #usernameInput="ngModel"
+          [class.invalid]="usernameInput.invalid && usernameInput.touched">
+        <div class="error-message" *ngIf="usernameInput.invalid && usernameInput.touched">
+          請輸入用戶名
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">
+          <i class="fas fa-lock"></i>
+        </label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password" 
+          placeholder="密碼"
+          [(ngModel)]="password"
+          required
+          minlength="6"
+          #passwordInput="ngModel"
+          [class.invalid]="passwordInput.invalid && passwordInput.touched">
+        <div class="error-message" *ngIf="passwordInput.invalid && passwordInput.touched">
+          密碼至少需要6個字符
+        </div>
+      </div>
+
+      <div class="form-group remember-me">
+        <label class="checkbox-container">
+          <input type="checkbox" [(ngModel)]="rememberMe" name="rememberMe">
+          <span class="checkmark"></span>
+          記住我
+        </label>
+        <a href="#" class="forgot-password">忘記密碼？</a>
+      </div>
+
+      <button type="submit" [disabled]="loginForm.invalid || isLoading" class="login-button">
+        <span *ngIf="!isLoading">登入</span>
+        <div class="spinner" *ngIf="isLoading"></div>
+      </button>
+    </form>
+  </div>
+</div>

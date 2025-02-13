@@ -1,0 +1,6 @@
+<!-- <app-questionnaire-form></app-questionnaire-form> -->
+
+<app-nav-bar *ngIf="showNavBar"></app-nav-bar>
+<div class="main-content" [class.no-nav]="!showNavBar">
+  <router-outlet></router-outlet>
+</div>
